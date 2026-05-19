@@ -1,13 +1,21 @@
 """
 imports here
 """
-
-
-
+import pandas as pd
+import torch.nn as nn
+import torch.optim as optim
+from torch.utils.data import DataLoader, Dataset
+import torch
+import matplotlib.pyplot as plt
+import numpy as np
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import precision_score, recall_score
+from sklearn.metrics import confusion_matrix
 
 """
 load data + data cleaning 
 """
+#df = pd.read_csv("") # download the data.... 
 
 
 
