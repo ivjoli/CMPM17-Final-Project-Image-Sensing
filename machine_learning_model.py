@@ -12,13 +12,17 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import precision_score, recall_score
 from sklearn.metrics import confusion_matrix
 
+# needed to load the dataset
+from datasets import load_dataset
+import torchvision.transforms as T
+from PIL import Image
+from io import BytesIO
+
 """
 load data + data cleaning 
 """
-#df = pd.read_csv("") # download the data.... 
-
-
-
+# ===== Load dataset =====
+ds = load_dataset("DeadCardassian/PM25Vision")
 
 
 
@@ -28,11 +32,6 @@ Train 70%
 Validation 15%
 Test 15%
 """
-
-
-
-
-
 
 
 
