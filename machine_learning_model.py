@@ -14,9 +14,10 @@ from sklearn.metrics import confusion_matrix
 
 # needed to load the dataset
 from datasets import load_dataset
-import torchvision.transforms as T #maybe from torchvision.utils.data import Transforms
 from PIL import Image
 from io import BytesIO
+
+from torchvision.transforms import v2
 
 """
 load data + data cleaning 
@@ -26,9 +27,9 @@ load data + data cleaning
 data = load_dataset("DeadCardassian/PM25Vision")
 
 # can change this transform
-transform = T.Compose([
-    T.Resize((224, 224)),
-    T.ToTensor(),
+transform = v2.Compose([
+    v2.Resize((224, 224)),
+    v2.ToTensor(),
 ])
 
 # need this to load the data bc data is located in weird location
@@ -41,8 +42,6 @@ train_loader = DataLoader(data["train"], batch_size=32, shuffle=True, collate_fn
 # df = data["train"].to_pandas()
 # print(df)
 # print(df.head())
-
-train_loader = DataLoader(data["train"], batch_size=32, shuffle=True, collate_fn=collate_fn)
 
 """
 Data Splicing / SCaling
@@ -72,13 +71,6 @@ Model + Dataloader Class
 # Model class
 
 
-
-
-transforms = Transforms.compose([
-    transforms.ToTensor()
-    transforms.Rotate(-30,30)
-    transforms.Hflip(p= 0.5)
-])
 
 # Dataloader Class
 class FinalDataset(Dataset):
