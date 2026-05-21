@@ -22,9 +22,27 @@ from io import BytesIO
 load data + data cleaning 
 """
 # ===== Load dataset =====
-ds = load_dataset("DeadCardassian/PM25Vision")
 
+data = load_dataset("DeadCardassian/PM25Vision")
 
+# can change this transform
+transform = T.Compose([
+    T.Resize((224, 224)),
+    T.ToTensor(),
+])
+
+# need this to load the data bc data is located in weird location
+def collate_fn(batch):
+    imgs = [transform(Image.open(BytesIO(x["image"])).convert("RGB")) for x in batch]
+    labels = [x["pm25"] for x in batch]   # pm25 AQI value
+    return torch.stack(imgs), torch.tensor(labels, dtype=torch.float32)
+
+train_loader = DataLoader(data["train"], batch_size=32, shuffle=True, collate_fn=collate_fn)
+# df = data["train"].to_pandas()
+# print(df)
+# print(df.head())
+
+train_loader = DataLoader(data["train"], batch_size=32, shuffle=True, collate_fn=collate_fn)
 
 """
 Data Splicing / SCaling
