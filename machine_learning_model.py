@@ -76,20 +76,10 @@ for idx, pic in enumerate(pics):
     pic = pic.permute(1, 2, 0)
     plt1 = plt.subplot(10, 10, idx + 1)
     plt1.imshow(pic)
-    plt1.set_title(labels.item[idx])
+    plt1.set_title(labels[idx])
     plt1.axis('off')
 plt.tight_layout()
 plt.show()
-
-
-
-
-
-
-
-
-
-
 
 
 """
@@ -98,10 +88,8 @@ Train 70%
 Validation 15%
 Test 15%
 """
-#Working Here: Data Splitting
-#train_data= FinalDataset(inputs, outputs, transforms)
-
-
+# data already split into train and test
+# need to grab validation from train
 
 
 
@@ -110,9 +98,25 @@ Test 15%
 """
 Model + Dataloader Class
 """
-
 # Model class
+class myNN(nn.Module):
+    def __init__(self):
+        super().__init__() # this calls a pytorch function to do math so no need to indent
+        self.layer1 = nn.Linear(100, 40) # inputs to layer 1
+        self.layer2 = nn.Linear(40,32) # inputs to layer 2
+        self.layer9 = nn.Linear(30, 1)
+        self.activation = nn.ReLU() # activation function
 
+    def forward(self, inputs):
+        partial = self.layer1(inputs)
+        partial = self.activation(partial)
+        partial = self.layer2(partial)
+        partial = self.activation(partial)
+        output = self.layer9(partial)
+        return output
+
+model = myNN()
+model.train() # puts model in training mode
 
 
 # Dataloader Class
