@@ -30,18 +30,42 @@ data = load_dataset("DeadCardassian/PM25Vision") # loads the data from the websi
 #print(data) shows the data
 #exit()
 
-# can change this transform (transforms images into numbers for computer to understand)
-transform = v2.Compose([
-    v2.Resize((224, 224)), # size of the images, will change depending on window size though
+"""
+AUGMENTATION FOR DATA IMAGES!!
+"""
+# can change this transform (transforms images into numbers for computer to understand) (for test and train)
+t_test = v2.Compose([
     v2.ToTensor(),
+    v2.Resize((224, 224)), # size of the images, will change depending on window size though
+    v2.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+])
+
+## transform for training data
+t_train = v2.Compose([
+    v2.RandomHorizontalFlip(p=0.5),
+    v2.RandomPerspective(distortion_scale = 0.25, p=0.5),
+    v2.ToTensor(),
+    v2.Resize((224, 224)),
+    v2.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
 ])
 
 # need this to load the data bc data is located in weird location
-def collate_fn(batch):
-    imgs = [transform(Image.open(BytesIO(x["image"])).convert("RGB")) for x in batch]
+def collate_fn_test(batch):
+    imgs = [t_test(Image.open(BytesIO(x["image"])).convert("RGB")) for x in batch]
     labels = [x["pm25"] for x in batch]   # pm25 AQI value
     return torch.stack(imgs), torch.tensor(labels, dtype=torch.float32)
 
+def collate_fn_train(batch):
+    imgs = [t_train(Image.open(BytesIO(x["image"])).convert("RGB")) for x in batch]
+    labels = [x["pm25"] for x in batch]   # pm25 AQI value
+    return torch.stack(imgs), torch.tensor(labels, dtype=torch.float32)
+
+### Make different transforms for train and test/val
+### Have a collate_fn_train for train that uses train_transform
+### Have a collate_fn_test for test/val that uses test_transform
+### When creating dataloaders, pass in the corresponding collate functions to the collate_fn parameter
+
+# test transform need, resize, if used normalize in train, then need to do for testing (RECOMENDED), turn it to a tensor 
 
 """
 Data Splicing / SCaling
@@ -70,15 +94,26 @@ Batching Inputs
 # Batch train inputs/outputs
 # Batch validation inputs/outputs
 # batch test inputs/outputs
-train_loader = DataLoader(data["train"], batch_size=100, shuffle=True, collate_fn=collate_fn) # creates batches (might want to change batch back to 32 for train loop)
-test_loader = DataLoader(data["test"], batch_size=32, shuffle=True, collate_fn=collate_fn)
-val_loader = DataLoader(data["val"], batch_size=32, shuffle=True, collate_fn=collate_fn)
+train_loader = DataLoader(data["train"], batch_size=100, shuffle=True, collate_fn=collate_fn_train) # creates batches (might want to change batch back to 32 for train loop)
+test_loader = DataLoader(data["test"], batch_size=32, shuffle=True, collate_fn=collate_fn_test)
+val_loader = DataLoader(data["val"], batch_size=32, shuffle=True, collate_fn=collate_fn_test)
 
 # view the data in train_loader, match input pictures with output PM2.5 concentration
-for x_batch, y_batch in train_loader:
-    print(x_batch.shape)
-    print(y_batch.shape)
+for train_in, train_out in train_loader:
+    print(train_in.shape)
+    print(train_out.shape)
     break
+
+for val_in, val_out in val_loader:
+    print(val_in.shape)
+    print(val_out.shape)
+    break
+
+for test_in, test_out in test_loader:
+    print(test_in.shape)
+    print(test_out.shape)
+    break
+
 
 """
 Display 100 Visualizations
@@ -171,12 +206,50 @@ Optimizer + Loss Function
 """
 # optimizer = Adam with learning rate 0.01
 # Loss Function = MSE
+loss_function = nn.MSELoss()
+# loss = loss_function(pred, outputs)
+optimizer = torch.optim.Adam(model.parameters(), lr=0.001) # define optimizer
 
 
 """
 Training Loop
+
+epoch = 100
+#counter to know how many batches = len(dataloader)
+for i in range(epoch):
+    model.train() # sets the model into training mode, allows weights to be changed
+    ### Get inputs and outputs in batches using the training DataLoader
+    training_loss = [] # loss is a list (per eopch)
+    for train_in, train_out in train_loader:
+        train_preds = model(train_in) # runs the class which gets updated each loop
+        loss = loss_function(train_preds, train_out.unsqueeze(1)) # loss would be a tensor
+        #print(f"Epoch {epoch} | training loss: {loss.item()}")
+        loss.backward() # calculates the slopes 
+        optimizer.step() # updates weights aka .parameters
+        optimizer.zero_grad() # removes all calculation don
+        # add loss to list per batch
+        training_loss.append(loss.item())
+    # calculate RMSE for training (per epoch)
+    train_RMSE = ((sum(training_loss))/(len(training_loss))) ** 0.5
+    print(f"Epoch {i+1} | Training loss: {train_RMSE}")
+    
+        
+    ### Gets input and outputs in batches using validation DataLoader
+            # DO NOT TRAIN
+    val_loss = []
+    model.eval() # evaluation mode, even if i try to update weights, dont do it
+    with torch.no_grad(): # tells pytorch to not calculate gradients, will run faster
+        for val_in, val_out in val_loader:
+            val_preds = model(val_in)
+            loss = loss_function(val_preds, val_out.unsqueeze(1))
+            #print(f"Epoch {epoch} | validation loss: {loss.item()}")
+            # add loss to list per batch
+            val_loss.append(loss.item())
+    # calculate RMSE for training (per epoch)
+    val_RMSE = ((sum(val_loss))/(len(val_loss))) ** 0.5
+    print(f"Epoch {i+1} | Validation loss: {val_RMSE}")
+
 """
-# Epoch == ??
 
 """
 Testing Loop
