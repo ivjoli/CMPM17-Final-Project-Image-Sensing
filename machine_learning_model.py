@@ -13,7 +13,7 @@ from sklearn.metrics import precision_score, recall_score
 from sklearn.metrics import confusion_matrix
 
 # needed to load the dataset
-from datasets import load_dataset
+from datasets import load_dataset, DatasetDict
 from PIL import Image
 from io import BytesIO
 from torchvision.transforms import v2
@@ -26,11 +26,13 @@ load data x
 """
 # ===== Load dataset =====
 
-data = load_dataset("DeadCardassian/PM25Vision")
+data = load_dataset("DeadCardassian/PM25Vision") # loads the data from the website
+#print(data) shows the data
+#exit()
 
-# can change this transform
+# can change this transform (transforms images into numbers for computer to understand)
 transform = v2.Compose([
-    v2.Resize((224, 224)),
+    v2.Resize((224, 224)), # size of the images, will change depending on window size though
     v2.ToTensor(),
 ])
 
@@ -40,7 +42,39 @@ def collate_fn(batch):
     labels = [x["pm25"] for x in batch]   # pm25 AQI value
     return torch.stack(imgs), torch.tensor(labels, dtype=torch.float32)
 
+
+"""
+Data Splicing / SCaling
+Train 70%
+Validation 15%
+Test 15%
+"""
+# data already split into train and test
+# need to grab validation from train
+# splitting the test dataset into 50% test and 50% validation
+dataset_split = data["test"].train_test_split(test_size=0.5) # grabs test dataset and splits it into 2 equal datasets
+# create a new identification for data 
+data = DatasetDict(
+    {
+        "train": data["train"],
+        "val": dataset_split["train"],
+        "test": dataset_split["test"],
+    }
+)
+
+print(data)
+
+"""
+Batching Inputs
+"""
+# Batch train inputs/outputs
+# Batch validation inputs/outputs
+# batch test inputs/outputs
 train_loader = DataLoader(data["train"], batch_size=100, shuffle=True, collate_fn=collate_fn) # creates batches (might want to change batch back to 32 for train loop)
+test_loader = DataLoader(data["test"], batch_size=32, shuffle=True, collate_fn=collate_fn)
+val_loader = DataLoader(data["val"], batch_size=32, shuffle=True, collate_fn=collate_fn)
+
+# view the data in train_loader, match input pictures with output PM2.5 concentration
 for x_batch, y_batch in train_loader:
     print(x_batch.shape)
     print(y_batch.shape)
@@ -49,7 +83,7 @@ for x_batch, y_batch in train_loader:
 """
 Display 100 Visualizations
 """
-# classificiation ?
+# classificiation ? can be put at the end for later
 def map_pm25_to_class(pm25):
     if pm25 <= 50.4: return 0
     elif pm25 <= 100.4: return 1
@@ -73,26 +107,13 @@ plt.figure(figsize = (20, 20)) # window size
 
 # loop and display images
 for idx, pic in enumerate(pics): 
-    pic = pic.permute(1, 2, 0)
-    plt1 = plt.subplot(10, 10, idx + 1)
-    plt1.imshow(pic)
-    plt1.set_title(labels[idx])
+    pic = pic.permute(1, 2, 0) # changes the order of dimentions to (W,H,C)
+    plt1 = plt.subplot(10, 10, idx + 1) # size of image and indexing to the next image doing the same thing
+    plt1.imshow(pic) # shows the image
+    plt1.set_title(labels[idx]) # shows the labels
     plt1.axis('off')
 plt.tight_layout()
 plt.show()
-
-
-"""
-Data Splicing / SCaling
-Train 70%
-Validation 15%
-Test 15%
-"""
-# data already split into train and test
-# need to grab validation from train
-
-
-
 
 
 """
@@ -124,13 +145,24 @@ class FinalDataset(Dataset):
     def __init__(self, input, transforms):
         self.transforms = transforms
 
-"""
-Batching Inputs
-"""
+# ivy put this here, can be changed or erased if Anthony deems so, not currently in use
+class MyDataset(Dataset):
+    def __init__(self, inputs, outputs):
+        ### Initialize inputs and outputs
+        self.inputs = inputs
+        self.outputs = outputs
+        self.length = len(inputs)
 
-# Batch train inputs/outputs
-# Batch validation inputs/outputs
-# batch test inputs/outputs
+    def __len__(self):
+        ### return the number of datapoints
+        return self.length
+    
+    def __getitem__(self, idx):
+        output = self.outputs[idx]
+        input = self.inputs[idx]
+        ### Get the input and output at index idx
+        return input, output    
+
 
 
 
