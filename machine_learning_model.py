@@ -158,7 +158,7 @@ Model + Dataloader Class
 class myNN(nn.Module):
     def __init__(self):
         super().__init__() # this calls a pytorch function to do math so no need to indent
-        self.layer1 = nn.Linear(100, 40) # inputs to layer 1
+        self.layer1 = nn.Conv2d(100, 40,  20, 1 , 1) # inputs to layer 1
         self.layer2 = nn.Linear(40,32) # inputs to layer 2
         self.layer9 = nn.Linear(32, 1) #Fix matched to 32!
         self.activation = nn.ReLU() # activation function
