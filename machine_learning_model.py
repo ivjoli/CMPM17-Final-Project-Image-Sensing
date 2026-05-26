@@ -158,23 +158,15 @@ Model + Dataloader Class
 class myNN(nn.Module):
     def __init__(self):
         super().__init__() # this calls a pytorch function to do math so no need to indent
-        self.layer1 = nn.Linear(100, 40) # inputs to layer 1
-        self.layer2 = nn.Linear(40,32) # inputs to layer 2
-        self.layer9 = nn.Linear(32, 1) #Fix matched to 32!
-        self.activation = nn.ReLU() # activation function
+        self.conv1 = nn.Conv2d(3, 6, 3, 1, 1) # CONTINUE THIS --------------------------------- ANTHONY
 
     def forward(self, inputs):
-        partial = self.layer1(inputs)
-        partial = self.activation(partial)
-        partial = self.layer2(partial)
-        partial = self.activation(partial)
-        output = self.layer9(partial)
-        return output
+        pass # CONTINUE THIS ------------------------------------ ANTHONY
 
 model = myNN()
 model.train() # puts model in training mode
 
-
+# DO WE NEED THIS? ------------------------- ANTHONY
 # Dataloader Class
 class FinalDataset(Dataset):
     def __init__(self, input, transforms):
@@ -255,6 +247,20 @@ for i in range(epoch):
 Testing Loop
 """
 
+model.eval() # weights cant be changed
+with torch.no_grad(): # stops background running pytorch because we don't need it to calc slope anymore will made code faster
+    ### Get inputs and outputs in batches using the testing DataLoader
+    test_loss = []
+    for test_in, test_out in test_loader:
+        test_preds = model(test_in)
+        loss = loss_function(test_preds, test_out.unsqueeze(1))
+        #print(f"Epoch {epoch} | test loss: {loss.item()}")
+        # add loss to list per batch
+        test_loss.append(loss.item())
+    # calculate RMSE for training (per epoch)
+    test_RMSE = ((sum(test_loss))/(len(test_loss))) ** 0.5
+    print(f"Testing loss: {test_RMSE}")
+
 """
-Class Identifier + Output
+Class Identifier + Output we not do this right?
 """
