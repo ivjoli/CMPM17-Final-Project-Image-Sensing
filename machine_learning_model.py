@@ -163,8 +163,8 @@ class myNN(nn.Module):
         self.layer9 = nn.Conv2d(80, 100,  3, 1 , 1) #The output can be modified for loss testing
         
         self.pool = nn.MaxPool2d(kernel_size=2, stride= 2)
-        self.fc1 = nn.Linear(28* 28 * 48, 400 )
-       
+        self.fc1 = nn.Linear(28* 28 * 48, 400)
+        self.fc2 = nn.Linear(400,5)
         self.activation = nn.ReLU() # activation function
 
     def forward(self, inputs):
