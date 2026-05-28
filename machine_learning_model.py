@@ -168,7 +168,6 @@ class myNN(nn.Module):
         self.relu = nn.ReLU() # activation function
 
     def forward(self, inputs):
-<<<<<<< HEAD
         partial = self.relu(self.layer1(partial))
         partial = self.pool(partial)
         partial = self.relu(self.layer2(partial))
@@ -180,8 +179,6 @@ class myNN(nn.Module):
         partial = self.relu(self.fc1(partial))
         output = self.fc2(partial)
         return output
-=======
- 
 
 model = myNN()
 model.train() # puts model in training mode
