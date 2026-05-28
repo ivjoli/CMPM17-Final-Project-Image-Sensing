@@ -160,19 +160,24 @@ class myNN(nn.Module):
         super().__init__() # this calls a pytorch function to do math so no need to indent
         self.layer1 = nn.Conv2d(3, 40,  kernel_size= 3, stride=1 , padding=1) # inputs to layer 1
         self.layer2 = nn.Conv2d(40, 80,  kernel_size= 3, stride=1 , padding=1) # inputs to layer 2
-        self.layer9 = nn.Conv2d(80, 100,  3, 1 , 1) #The output can be modified for loss testing
+        self.layer3 = nn.Conv2d(80, 100,  3, 1 , 1) #The output can be modified for loss testing
         
         self.pool = nn.MaxPool2d(kernel_size=2, stride= 2)
         self.fc1 = nn.Linear(28* 28 * 48, 400)
         self.fc2 = nn.Linear(400,5)
-        self.activation = nn.ReLU() # activation function
+        self.relu = nn.ReLU() # activation function
 
     def forward(self, inputs):
-        partial = self.layer1(inputs)
-        partial = self.activation(partial)
-        partial = self.layer2(partial)
-        partial = self.activation(partial)
-        output = self.layer9(partial)
+        partial = self.relu(self.layer1(partial))
+        partial = self.pool(partial)
+        partial = self.relu(self.layer2(partial))
+        partial = self.pool(partial)
+        partial = self.relu(self.layer3(partial))
+        partial = self.pool(partial)
+
+        partial = partial.flatten(start_dim=1)
+        partial = self.relu(self.fc1(partial))
+        output = self.fc2(partial)
         return output
 
 model = myNN()
