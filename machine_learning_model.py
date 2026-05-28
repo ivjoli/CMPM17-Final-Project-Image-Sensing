@@ -158,7 +158,10 @@ Model + Dataloader Class
 class myNN(nn.Module):
     def __init__(self):
         super().__init__() # this calls a pytorch function to do math so no need to indent
-        self.conv1 = nn.Conv2d(3, 6, 3, 1, 1) # CONTINUE THIS --------------------------------- ANTHONY
+        self.layer1 = nn.Conv2d(100, 40,  20, 1 , 1) # inputs to layer 1
+        self.layer2 = nn.Linear(40,32) # inputs to layer 2
+        self.layer9 = nn.Linear(32, 1) #Fix matched to 32!
+        self.activation = nn.ReLU() # activation function
 
     def forward(self, inputs):
         pass # CONTINUE THIS ------------------------------------ ANTHONY
@@ -253,7 +256,7 @@ with torch.no_grad(): # stops background running pytorch because we don't need i
     test_loss = []
     for test_in, test_out in test_loader:
         test_preds = model(test_in)
-        loss = loss_function(test_preds, test_out.unsqueeze(1))
+        loss = loss_function(test_preds, test_out) # ask eric, 'NoneType' object has no attribute 'size'
         #print(f"Epoch {epoch} | test loss: {loss.item()}")
         # add loss to list per batch
         test_loss.append(loss.item())
