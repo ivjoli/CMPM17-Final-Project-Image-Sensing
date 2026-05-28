@@ -168,6 +168,7 @@ class myNN(nn.Module):
         self.relu = nn.ReLU() # activation function
 
     def forward(self, inputs):
+<<<<<<< HEAD
         partial = self.relu(self.layer1(partial))
         partial = self.pool(partial)
         partial = self.relu(self.layer2(partial))
@@ -179,11 +180,13 @@ class myNN(nn.Module):
         partial = self.relu(self.fc1(partial))
         output = self.fc2(partial)
         return output
+=======
+ 
 
 model = myNN()
 model.train() # puts model in training mode
 
-
+# DO WE NEED THIS? ------------------------- ANTHONY
 # Dataloader Class
 class FinalDataset(Dataset):
     def __init__(self, input, transforms):
@@ -264,6 +267,20 @@ for i in range(epoch):
 Testing Loop
 """
 
+model.eval() # weights cant be changed
+with torch.no_grad(): # stops background running pytorch because we don't need it to calc slope anymore will made code faster
+    ### Get inputs and outputs in batches using the testing DataLoader
+    test_loss = []
+    for test_in, test_out in test_loader:
+        test_preds = model(test_in)
+        loss = loss_function(test_preds, test_out) # ask eric, 'NoneType' object has no attribute 'size'
+        #print(f"Epoch {epoch} | test loss: {loss.item()}")
+        # add loss to list per batch
+        test_loss.append(loss.item())
+    # calculate RMSE for training (per epoch)
+    test_RMSE = ((sum(test_loss))/(len(test_loss))) ** 0.5
+    print(f"Testing loss: {test_RMSE}")
+
 """
-Class Identifier + Output
+Class Identifier + Output we not do this right?
 """
