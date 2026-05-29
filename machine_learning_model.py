@@ -73,6 +73,7 @@ Train 70%
 Validation 15%
 Test 15%
 """
+
 # data already split into train and test
 # need to grab validation from train
 # splitting the test dataset into 50% test and 50% validation
@@ -166,9 +167,9 @@ class myNN(nn.Module):
         self.fc1 = nn.Linear(28* 28 * 48, 400)
         self.fc2 = nn.Linear(400,5)
         self.relu = nn.ReLU() # activation function
-
+#Forward Pass for Milestone 2!
     def forward(self, inputs):
-        partial = self.relu(self.layer1(partial))
+        partial = self.relu(self.layer1(inputs))
         partial = self.pool(partial)
         partial = self.relu(self.layer2(partial))
         partial = self.pool(partial)
@@ -220,10 +221,10 @@ loss_function = nn.MSELoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=0.001) # define optimizer
 
 
-"""
-Training Loop
 
-epoch = 100
+#Training Loop
+
+epoch = 2 #TEMPORARY FOR NOW WHILE WE wait for RUNPOD
 #counter to know how many batches = len(dataloader)
 for i in range(epoch):
     model.train() # sets the model into training mode, allows weights to be changed
@@ -258,9 +259,8 @@ for i in range(epoch):
     val_RMSE = ((sum(val_loss))/(len(val_loss))) ** 0.5
     print(f"Epoch {i+1} | Validation loss: {val_RMSE}")
 
-"""
 
-"""
+"""""
 Testing Loop
 """
 
