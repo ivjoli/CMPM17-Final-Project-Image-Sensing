@@ -161,7 +161,7 @@ class myNN(nn.Module):
         super().__init__() # this calls a pytorch function to do math so no need to indent
         self.layer1 = nn.Conv2d(3, 40,  kernel_size= 3, stride=1 , padding=1) # inputs to layer 1
         self.layer2 = nn.Conv2d(40, 80,  kernel_size= 3, stride=1 , padding=1) # inputs to layer 2
-        self.layer3 = nn.Conv2d(80, 100,  3, 1 , 1) #The output can be modified for loss testing
+        self.layer3 = nn.Conv2d(80, 400,  3, 1 , 1) #The output can be modified for loss testing
         
         self.pool = nn.MaxPool2d(kernel_size=2, stride= 2)
         self.fc1 = nn.Linear(28* 28 * 48, 400)
@@ -238,7 +238,9 @@ for i in range(epoch):
         optimizer.step() # updates weights aka .parameters
         optimizer.zero_grad() # removes all calculation don
         # add loss to list per batch
+        print(f"Train LOSS: {loss.item()}")
         training_loss.append(loss.item())
+
     # calculate RMSE for training (per epoch)
     train_RMSE = ((sum(training_loss))/(len(training_loss))) ** 0.5
     print(f"Epoch {i+1} | Training loss: {train_RMSE}")
@@ -256,6 +258,7 @@ for i in range(epoch):
             # add loss to list per batch
             val_loss.append(loss.item())
     # calculate RMSE for training (per epoch)
+    
     val_RMSE = ((sum(val_loss))/(len(val_loss))) ** 0.5
     print(f"Epoch {i+1} | Validation loss: {val_RMSE}")
 
