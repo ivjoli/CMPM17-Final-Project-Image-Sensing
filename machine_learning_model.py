@@ -95,9 +95,9 @@ Batching Inputs
 # Batch train inputs/outputs
 # Batch validation inputs/outputs
 # batch test inputs/outputs
-train_loader = DataLoader(data["train"], batch_size=100, shuffle=True, collate_fn=collate_fn_train) # creates batches (might want to change batch back to 32 for train loop)
-test_loader = DataLoader(data["test"], batch_size=32, shuffle=True, collate_fn=collate_fn_test)
-val_loader = DataLoader(data["val"], batch_size=32, shuffle=True, collate_fn=collate_fn_test)
+train_loader = DataLoader(data["train"], batch_size=100, shuffle=True, collate_fn=collate_fn_train, num_workers=16) # creates batches (might want to change batch back to 32 for train loop)
+test_loader = DataLoader(data["test"], batch_size=32, shuffle=True, collate_fn=collate_fn_test, num_workers=16)
+val_loader = DataLoader(data["val"], batch_size=32, shuffle=True, collate_fn=collate_fn_test, num_workers=16)
 
 # view the data in train_loader, match input pictures with output PM2.5 concentration
 for train_in, train_out in train_loader:
@@ -161,19 +161,22 @@ class myNN(nn.Module):
         super().__init__() # this calls a pytorch function to do math so no need to indent
         self.layer1 = nn.Conv2d(3, 40,  kernel_size= 3, stride=1 , padding=1) # inputs to layer 1
         self.layer2 = nn.Conv2d(40, 80,  kernel_size= 3, stride=1 , padding=1) # inputs to layer 2
-        self.layer3 = nn.Conv2d(80, 100,  3, 1 , 1) #The output can be modified for loss testing
+        self.layer3 = nn.Conv2d(80, 50,  kernel_size= 3, stride=1 , padding=1) # inputs to layer 2
+        self.layer4 = nn.Conv2d(50, 100,  3, 1 , 1) #The output can be modified for loss testing
         
         self.pool = nn.MaxPool2d(kernel_size=2, stride= 2)
-        self.fc1 = nn.Linear(28* 28 * 100, 400)
-        self.fc2 = nn.Linear(400,5)
+        self.fc1 = nn.Linear(14 * 14 * 100, 400)
+        self.fc2 = nn.Linear(400,1)
         self.relu = nn.ReLU() # activation function
-#Forward Pass for Milestone 2!
+    #Forward Pass for Milestone 2!
     def forward(self, inputs):
         partial = self.relu(self.layer1(inputs))
         partial = self.pool(partial)
         partial = self.relu(self.layer2(partial))
         partial = self.pool(partial)
         partial = self.relu(self.layer3(partial))
+        partial = self.pool(partial)
+        partial = self.relu(self.layer4(partial))
         partial = self.pool(partial)
 
         partial = partial.flatten(start_dim=1)
@@ -220,26 +223,32 @@ loss_function = nn.MSELoss()
 # loss = loss_function(pred, outputs)
 optimizer = torch.optim.Adam(model.parameters(), lr=0.001) # define optimizer
 
-
+device = "cuda" if torch.cuda.is_available() else "cpu"
+model = model.to(device)
 
 #Training Loop
 
-epoch = 2 #TEMPORARY FOR NOW WHILE WE wait for RUNPOD
+epoch = 15 #TEMPORARY FOR NOW WHILE WE wait for RUNPOD - runpod works
 #counter to know how many batches = len(dataloader)
 for i in range(epoch):
     model.train() # sets the model into training mode, allows weights to be changed
     ### Get inputs and outputs in batches using the training DataLoader
     training_loss = [] # loss is a list (per eopch)
+    counter = 0
     for train_in, train_out in train_loader:
-        train_preds = model(train_in) # runs the class which gets updated each loop
-        loss = loss_function(train_preds, train_out.unsqueeze(1)) # loss would be a tensor
-        #print(f"Epoch {epoch} | training loss: {loss.item()}")
-        loss.backward() # calculates the slopes 
-        optimizer.step() # updates weights aka .parameters
-        optimizer.zero_grad() # removes all calculation don
-        # add loss to list per batch
-        print(f"Train LOSS: {loss.item()}")
-        training_loss.append(loss.item())
+        train_in = train_in.to(device)
+        train_out = train_out.to(device)
+        if counter < 25:
+            train_preds = model(train_in) # runs the class which gets updated each loop
+            loss = loss_function(train_preds, train_out.unsqueeze(1)) # loss would be a tensor
+            #print(f"Epoch {epoch} | training loss: {loss.item()}")
+            loss.backward() # calculates the slopes 
+            optimizer.step() # updates weights aka .parameters
+            optimizer.zero_grad() # removes all calculation don
+            # add loss to list per batch
+            #print(f"Train LOSS: {loss.item()}")
+            training_loss.append(loss.item())
+            counter += 1
 
     # calculate RMSE for training (per epoch)
     train_RMSE = ((sum(training_loss))/(len(training_loss))) ** 0.5
@@ -251,12 +260,17 @@ for i in range(epoch):
     val_loss = []
     model.eval() # evaluation mode, even if i try to update weights, dont do it
     with torch.no_grad(): # tells pytorch to not calculate gradients, will run faster
+        counter = 0
         for val_in, val_out in val_loader:
-            val_preds = model(val_in)
-            loss = loss_function(val_preds, val_out.unsqueeze(1))
-            #print(f"Epoch {epoch} | validation loss: {loss.item()}")
-            # add loss to list per batch
-            val_loss.append(loss.item())
+            val_in = val_in.to(device)
+            val_out = val_out.to(device)
+            if counter < 25:
+                val_preds = model(val_in)
+                loss = loss_function(val_preds, val_out.unsqueeze(1))
+                #print(f"Epoch {epoch} | validation loss: {loss.item()}")
+                # add loss to list per batch
+                val_loss.append(loss.item())
+                counter += 1
     # calculate RMSE for training (per epoch)
     
     val_RMSE = ((sum(val_loss))/(len(val_loss))) ** 0.5
@@ -271,15 +285,20 @@ model.eval() # weights cant be changed
 with torch.no_grad(): # stops background running pytorch because we don't need it to calc slope anymore will made code faster
     ### Get inputs and outputs in batches using the testing DataLoader
     test_loss = []
+    counter = 0
     for test_in, test_out in test_loader:
-        test_preds = model(test_in)
-        loss = loss_function(test_preds, test_out) # ask eric, 'NoneType' object has no attribute 'size'
-        #print(f"Epoch {epoch} | test loss: {loss.item()}")
-        # add loss to list per batch
-        test_loss.append(loss.item())
+        test_in = test_in.to(device)
+        test_out = test_out.to(device)
+        if counter < 25:
+            test_preds = model(test_in)
+            loss = loss_function(test_preds, test_out) # ask eric, 'NoneType' object has no attribute 'size'
+            #print(f"Epoch {epoch} | test loss: {loss.item()}")
+            # add loss to list per batch
+            test_loss.append(loss.item())
+            counter += 1
     # calculate RMSE for training (per epoch)
     test_RMSE = ((sum(test_loss))/(len(test_loss))) ** 0.5
-    print(f"Testing loss: {test_RMSE}")
+    print(f"Epoch {i+1} | Testing loss: {val_RMSE}")
 
 """
 Class Identifier + Output we not do this right?
