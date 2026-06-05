@@ -18,6 +18,9 @@ from PIL import Image
 from io import BytesIO
 from torchvision.transforms import v2
 
+# confusion matrix
+from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
+
 # visualizing images
 
 
@@ -234,7 +237,7 @@ model = model.to(device)
 
 #Training Loop
 
-epoch = 15 #TEMPORARY FOR NOW WHILE WE wait for RUNPOD - runpod works
+epoch = 10  #TEMPORARY FOR NOW WHILE WE wait for RUNPOD - runpod works
 #counter to know how many batches = len(dataloader)
 for i in range(epoch):
     model.train() # sets the model into training mode, allows weights to be changed
@@ -291,6 +294,8 @@ model.eval() # weights cant be changed
 with torch.no_grad(): # stops background running pytorch because we don't need it to calc slope anymore will made code faster
     ### Get inputs and outputs in batches using the testing DataLoader
     test_loss = []
+    AQI_values_in = [] # stores prediction
+    AQI_values_out = [] # stores labels
     counter = 0
     for test_in, test_out in test_loader:
         test_in = test_in.to(device)
@@ -301,10 +306,29 @@ with torch.no_grad(): # stops background running pytorch because we don't need i
             #print(f"Epoch {epoch} | test loss: {loss.item()}")
             # add loss to list per batch
             test_loss.append(loss.item())
+            AQI_values_in.extend(test_preds.tolist())
+            AQI_values_out.extend(test_out.tolist())
             counter += 1
     # calculate RMSE for training (per epoch)
     test_RMSE = ((sum(test_loss))/(len(test_loss))) ** 0.5
-    print(f"Epoch {i+1} | Testing loss: {val_RMSE}")
+    print(f"Testing loss: {test_RMSE}")
+    # passing in AQI values into classification function for class level
+    AQI_class_level = [] # predictions
+    for pm25 in AQI_values_in:
+        AQI_class_level.append(map_pm25_to_class(pm25[0]))
+
+    AQI_class_out = [] # actual
+    for pm25 in AQI_values_out:
+        AQI_class_out.append(map_pm25_to_class(pm25))
+
+
+# confusion matrix
+cm = confusion_matrix(AQI_class_out, AQI_class_level)
+print(cm)
+
+
+
+
 
 """
 Class Identifier + Output we not do this right?
