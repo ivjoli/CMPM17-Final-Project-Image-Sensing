@@ -28,6 +28,9 @@ from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
 load data x
 """
 # ===== Load dataset =====
+# WandB
+run = wandb.init(project="example-test", name="my-run")
+
 
 data = load_dataset("DeadCardassian/PM25Vision") # loads the data from the website
 #print(data) shows the data
@@ -193,7 +196,7 @@ class myNN(nn.Module):
         output = self.fc2(partial)
         return output
 
-model = myNN()
+model = myNN() # creates an object
 model.train() # puts model in training mode
 
 # DO WE NEED THIS? ------------------------- ANTHONY
@@ -230,12 +233,12 @@ Optimizer + Loss Function
 # Loss Function = MSE
 loss_function = nn.MSELoss()
 # loss = loss_function(pred, outputs)
-optimizer = torch.optim.Adam(model.parameters(), lr=0.001) # define optimizer
+optimizer = torch.optim.Adam(model.parameters(), lr=0.001, weight_decay= .01) # define optimizer
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 model = model.to(device)
 
-#Training Loop
+"""Training Loop"""
 
 epoch = 10  #TEMPORARY FOR NOW WHILE WE wait for RUNPOD - runpod works
 #counter to know how many batches = len(dataloader)
@@ -258,6 +261,7 @@ for i in range(epoch):
             #print(f"Train LOSS: {loss.item()}")
             training_loss.append(loss.item())
             counter += 1
+            
 
     # calculate RMSE for training (per epoch)
     train_RMSE = ((sum(training_loss))/(len(training_loss))) ** 0.5
@@ -284,6 +288,8 @@ for i in range(epoch):
     
     val_RMSE = ((sum(val_loss))/(len(val_loss))) ** 0.5
     print(f"Epoch {i+1} | Validation loss: {val_RMSE}")
+
+    run.log({"train loss": training_loss, "validation loss": val_loss}) # log values into wandb
 
 
 """""
@@ -326,10 +332,5 @@ with torch.no_grad(): # stops background running pytorch because we don't need i
 cm = confusion_matrix(AQI_class_out, AQI_class_level)
 print(cm)
 
+torch.save(model.state_dict(), "model_version_1.pt") # RUN THIS WHEN YOU WANT TO SAVE THE WEIGHTS AND BIASES!!!!
 
-
-
-
-"""
-Class Identifier + Output we not do this right?
-"""
