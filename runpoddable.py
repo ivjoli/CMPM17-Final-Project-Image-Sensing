@@ -38,8 +38,8 @@ AUGMENTATION FOR DATA IMAGES!!
 """
 # can change this transform (transforms images into numbers for computer to understand) (for test and train)
 t_test = v2.Compose([
-    v2.ToTensor(),
     v2.Resize((224, 224)), # size of the images, will change depending on window size though
+    v2.ToTensor(),
     v2.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
 ])
 
@@ -47,14 +47,10 @@ t_test = v2.Compose([
 t_train = v2.Compose([
     v2.Resize((256, 256)),
     v2.RandomHorizontalFlip(p=0.5),
-   
     v2.RandomCrop((224, 224)),
-    v2.RandomHorizontalFlip(p=0.5),
     v2.ColorJitter(brightness=0.15, contrast=0.15, saturation=0.10, hue=0.03),
-    v2.RandomPerspective(distortion_scale=0.10, p=0.25),
-    v2.RandomPerspective(distortion_scale = 0.25, p=0.5),
+    v2.RandomPerspective(distortion_scale = 0.10, p=0.25),
     v2.ToTensor(),
-    v2.Resize((224, 224)),
     v2.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
 ])
 
@@ -234,9 +230,10 @@ Optimizer + Loss Function
 """
 # optimizer = Adam with learning rate 0.01
 # Loss Function = MSE
-loss_function = nn.MSELoss()
+loss_function = nn.SmoothL1Loss(beta= 25.0)
+rmse_function = nn.MSELoss() #So I can keep rmse for accuracy
 # loss = loss_function(pred, outputs)
-optimizer = torch.optim.Adam(model.parameters(), lr=0.001, weight_decay=.01) # define optimizer + added a weight decay
+optimizer = torch.optim.Adam(model.parameters(), lr=0.001, weight_decay=.0001) # define optimizer + added a weight decay
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 model = model.to(device)
@@ -253,16 +250,18 @@ for i in range(epoch):
     for train_in, train_out in train_loader:
         train_in = train_in.to(device)
         train_out = train_out.to(device)
-        if counter < 25:
+        if True:
+        #if counter < 25:
+            optimizer.zero_grad() # removes all calculation don
             train_preds = model(train_in) # runs the class whichn gets updated each loop
             loss = loss_function(train_preds, train_out.unsqueeze(1)) # loss would be a tensor
             #print(f"Epoch {epoch} | training loss: {loss.item()}")
             loss.backward() # calculates the slopes 
             optimizer.step() # updates weights aka .parameters
-            optimizer.zero_grad() # removes all calculation don
+            
             # add loss to list per batch
             #print(f"Train LOSS: {loss.item()}")
-            training_loss.append(loss.item())
+            training_loss.append(rmse_function(train_preds,train_out.unsqueeze(1)).item())
             counter += 1
 
     # calculate RMSE for training (per epoch)
@@ -279,12 +278,13 @@ for i in range(epoch):
         for val_in, val_out in val_loader:
             val_in = val_in.to(device)
             val_out = val_out.to(device)
-            if counter < 25:
+            if True:
+            #if counter < 25:
                 val_preds = model(val_in)
                 loss = loss_function(val_preds, val_out.unsqueeze(1))
                 #print(f"Epoch {epoch} | validation loss: {loss.item()}")
                 # add loss to list per batch
-                val_loss.append(loss.item())
+                val_loss.append(rmse_function(val_preds, val_out.unsqueeze(1)).item())
                 counter += 1
     # calculate RMSE for training (per epoch)
     
@@ -306,12 +306,13 @@ with torch.no_grad(): # stops background running pytorch because we don't need i
     for test_in, test_out in test_loader:
         test_in = test_in.to(device)
         test_out = test_out.to(device)
-        if counter < 25:
+        if True:
+        #if counter < 25:
             test_preds = model(test_in)
-            loss = loss_function(test_preds, test_out) # ask eric, 'NoneType' object has no attribute 'size'
+            loss = loss_function(test_preds, test_out.unsqueeze(1)) # ask eric, 'NoneType' object has no attribute 'size'
             #print(f"Epoch {epoch} | test loss: {loss.item()}")
             # add loss to list per batch
-            test_loss.append(loss.item())
+            test_loss.append(rmse_function(test_preds,test_out.unsqueeze(1)).item())
             AQI_values_in.extend(test_preds.tolist())
             AQI_values_out.extend(test_out.tolist())
             counter += 1
@@ -332,7 +333,7 @@ with torch.no_grad(): # stops background running pytorch because we don't need i
 cm = confusion_matrix(AQI_class_out, AQI_class_level)
 print(cm)
 
-
+print(f"AQI class accuracy: {cm.diagonal().sum() / cm.sum():.4f}")
 
 
 
