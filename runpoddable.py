@@ -168,9 +168,9 @@ class myNN(nn.Module):
         
         self.layer1 = nn.Conv2d(3, 40,  kernel_size= 3, stride=1 , padding=1) # inputs to layer 1
         self.batchNorm1 = nn.BatchNorm2d( 40 )
-        self.layer2 = nn.Conv2d(40, 80,  kernel_size= 3, stride=1 , padding=1) # inputs to layer 2
-        self.batchNorm2 = nn.BatchNorm2d( 80 )
-        self.layer3 = nn.Conv2d(80, 50,  kernel_size= 3, stride=1 , padding=1) # inputs to layer 2
+        self.layer2 = nn.Conv2d(40, 30,  kernel_size= 3, stride=1 , padding=1) # inputs to layer 2
+        self.batchNorm2 = nn.BatchNorm2d( 30 )
+        self.layer3 = nn.Conv2d(30, 50,  kernel_size= 3, stride=1 , padding=1) # inputs to layer 2
         self.batchNorm3 = nn.BatchNorm2d( 50 )
         self.layer4 = nn.Conv2d(50, 100,  3, 1 , 1) #The output can be modified for loss testing
         self.batchNorm4 = nn.BatchNorm2d( 100 )
