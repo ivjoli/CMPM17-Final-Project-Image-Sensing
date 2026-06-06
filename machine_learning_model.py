@@ -87,9 +87,9 @@ dataset_split = data["test"].train_test_split(test_size=0.5) # grabs test datase
 # create a new identification for data 
 data = DatasetDict(
     {
-        "train": data["train"],
-        "val": dataset_split["train"],
-        "test": dataset_split["test"],
+        "train": data["train"], # 8298
+        "val": dataset_split["train"], # 1460
+        "test": dataset_split["test"], # 1461
     }
 )
 
@@ -104,6 +104,8 @@ Batching Inputs
 train_loader = DataLoader(data["train"], batch_size=100, shuffle=True, collate_fn=collate_fn_train, num_workers=16) # creates batches (might want to change batch back to 32 for train loop)
 test_loader = DataLoader(data["test"], batch_size=32, shuffle=True, collate_fn=collate_fn_test, num_workers=16)
 val_loader = DataLoader(data["val"], batch_size=32, shuffle=True, collate_fn=collate_fn_test, num_workers=16)
+
+
 
 # view the data in train_loader, match input pictures with output PM2.5 concentration
 for train_in, train_out in train_loader:
