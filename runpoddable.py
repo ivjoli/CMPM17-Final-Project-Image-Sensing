@@ -5,6 +5,7 @@ import pandas as pd
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader, Dataset
+from torch.optim.lr_scheduler import ExponentialLR as ExpLR
 import torch
 import matplotlib.pyplot as plt
 import numpy as np
@@ -232,8 +233,10 @@ Optimizer + Loss Function
 # Loss Function = MSE
 loss_function = nn.SmoothL1Loss(beta= 25.0)
 rmse_function = nn.MSELoss() #So I can keep rmse for accuracy
-# loss = loss_function(pred, outputs)
+
 optimizer = torch.optim.Adam(model.parameters(), lr=0.001, weight_decay=.0001) # define optimizer + added a weight decay
+scheduler= ExpLR(optimizer, gamma= 0.9)
+
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 model = model.to(device)
@@ -264,6 +267,7 @@ for i in range(epoch):
             training_loss.append(rmse_function(train_preds,train_out.unsqueeze(1)).item())
             counter += 1
 
+    scheduler.step()
     # calculate RMSE for training (per epoch)
     train_RMSE = ((sum(training_loss))/(len(training_loss))) ** 0.5
     print(f"Epoch {i+1} | Training loss: {train_RMSE}")
