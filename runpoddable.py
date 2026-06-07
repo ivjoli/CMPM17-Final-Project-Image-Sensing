@@ -5,8 +5,9 @@ import pandas as pd
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader, Dataset
-from torch.optim.lr_scheduler import ExponentialLR as ExpLR
-import torch
+from torch.optim.lr_scheduler import ReduceLROnPlateau as ReduceLROnPlateau
+import torch 
+import wandb
 import matplotlib.pyplot as plt
 import numpy as np
 from sklearn.preprocessing import StandardScaler
@@ -168,9 +169,9 @@ class myNN(nn.Module):
         
         self.layer1 = nn.Conv2d(3, 40,  kernel_size= 3, stride=1 , padding=1) # inputs to layer 1
         self.batchNorm1 = nn.BatchNorm2d( 40 )
-        self.layer2 = nn.Conv2d(40, 30,  kernel_size= 3, stride=1 , padding=1) # inputs to layer 2
-        self.batchNorm2 = nn.BatchNorm2d( 30 )
-        self.layer3 = nn.Conv2d(30, 50,  kernel_size= 3, stride=1 , padding=1) # inputs to layer 2
+        self.layer2 = nn.Conv2d(40, 80,  kernel_size= 3, stride=1 , padding=1) # inputs to layer 2
+        self.batchNorm2 = nn.BatchNorm2d( 80 )
+        self.layer3 = nn.Conv2d(80, 50,  kernel_size= 3, stride=1 , padding=1) # inputs to layer 2
         self.batchNorm3 = nn.BatchNorm2d( 50 )
         self.layer4 = nn.Conv2d(50, 100,  3, 1 , 1) #The output can be modified for loss testing
         self.batchNorm4 = nn.BatchNorm2d( 100 )
@@ -235,15 +236,29 @@ loss_function = nn.SmoothL1Loss(beta= 25.0)
 rmse_function = nn.MSELoss() #So I can keep rmse for accuracy
 
 optimizer = torch.optim.Adam(model.parameters(), lr=0.001, weight_decay=.0001) # define optimizer + added a weight decay
-scheduler= ExpLR(optimizer, gamma= 0.9)
+scheduler= ReduceLROnPlateau(optimizer, mode= "min", factor= .5, patience= 3)
 
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 model = model.to(device)
 
-#Training Loop
+run = wandb.init(
+      project="example-test",
+      name="my-run",
+      config={
+          "epochs": 100,
+          "batch_size_train": 100,
+          "batch_size_eval": 32,
+          "learning_rate": 1e-3,
+          "image_size": 224,
+          "model": "CNN"
+      }
+  )
 
-epoch = 30  #TEMPORARY FOR NOW WHILE WE wait for RUNPOD - runpod works
+#Training Loop
+best_val_RMSE, best_epoch, best_model_state = float("inf"), 0, None
+
+epoch = 35  #TEMPORARY FOR NOW WHILE WE wait for RUNPOD - runpod works
 #counter to know how many batches = len(dataloader)
 for i in range(epoch):
     model.train() # sets the model into training mode, allows weights to be changed
@@ -255,7 +270,7 @@ for i in range(epoch):
         train_out = train_out.to(device)
         if True:
         #if counter < 25:
-            optimizer.zero_grad() # removes all calculation don
+            optimizer.zero_grad() # removes all calculation donsmoo
             train_preds = model(train_in) # runs the class whichn gets updated each loop
             loss = loss_function(train_preds, train_out.unsqueeze(1)) # loss would be a tensor
             #print(f"Epoch {epoch} | training loss: {loss.item()}")
@@ -267,7 +282,7 @@ for i in range(epoch):
             training_loss.append(rmse_function(train_preds,train_out.unsqueeze(1)).item())
             counter += 1
 
-    scheduler.step()
+    #scheduler.step()
     # calculate RMSE for training (per epoch)
     train_RMSE = ((sum(training_loss))/(len(training_loss))) ** 0.5
     print(f"Epoch {i+1} | Training loss: {train_RMSE}")
@@ -293,8 +308,18 @@ for i in range(epoch):
     # calculate RMSE for training (per epoch)
     
     val_RMSE = ((sum(val_loss))/(len(val_loss))) ** 0.5
+    if val_RMSE < best_val_RMSE:
+      best_val_RMSE, best_epoch = val_RMSE, i + 1
+      best_model_state = {k: v.cpu().clone() for k, v in model.state_dict().items()}
     print(f"Epoch {i+1} | Validation loss: {val_RMSE}")
+    scheduler.step(val_RMSE)
+    print(f"Epoch {i+1} | Learning rate: {optimizer.param_groups[0] ['lr']}")
 
+####################
+model.load_state_dict(best_model_state)
+model = model.to(device)
+print(f"Testing best model from epoch {best_epoch} with val RMSE {best_val_RMSE}")
+########################
 
 """""
 Testing Loop
@@ -333,6 +358,7 @@ with torch.no_grad(): # stops background running pytorch because we don't need i
         AQI_class_out.append(map_pm25_to_class(pm25))
 
 
+
 # confusion matrix
 cm = confusion_matrix(AQI_class_out, AQI_class_level)
 print(cm)
@@ -340,6 +366,12 @@ print(cm)
 print(f"AQI class accuracy: {cm.diagonal().sum() / cm.sum():.4f}")
 
 
+#####################wanddb log for evaluation
+run.log({
+      "test_RMSE": test_RMSE,
+      "AQI_accuracy": cm.diagonal().sum() / cm.sum(),
+      "best_epoch": best_epoch,
+  })
 
 """
 Class Identifier + Output we not do this right?
