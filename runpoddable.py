@@ -50,8 +50,8 @@ t_train = v2.Compose([
     v2.Resize((256, 256)),
     v2.RandomHorizontalFlip(p=0.5),
     v2.RandomCrop((224, 224)),
-    v2.ColorJitter(brightness=0.15, contrast=0.15, saturation=0.10, hue=0.03),
-    v2.RandomPerspective(distortion_scale = 0.10, p=0.25),
+  #  v2.ColorJitter(brightness=0.15, contrast=0.15, saturation=0.10, hue=0.03),
+  #  v2.RandomPerspective(distortion_scale = 0.10, p=0.25),
     v2.ToTensor(),
     v2.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
 ])
@@ -59,12 +59,12 @@ t_train = v2.Compose([
 # need this to load the data bc data is located in weird location
 def collate_fn_test(batch):
     imgs = [t_test(Image.open(BytesIO(x["image"])).convert("RGB")) for x in batch]
-    labels = [x["pm25"] for x in batch]   # pm25 AQI value
+    labels = [x["pm25"] / 100 for x in batch]   # pm25 AQI value
     return torch.stack(imgs), torch.tensor(labels, dtype=torch.float32)
 
 def collate_fn_train(batch):
     imgs = [t_train(Image.open(BytesIO(x["image"])).convert("RGB")) for x in batch]
-    labels = [x["pm25"] for x in batch]   # pm25 AQI value
+    labels = [x["pm25"] / 100 for x in batch]   # pm25 AQI value
     return torch.stack(imgs), torch.tensor(labels, dtype=torch.float32)
 
 ### Make different transforms for train and test/val
@@ -96,13 +96,23 @@ data = DatasetDict(
 
 print(data)
 
+# classificiation of ppm
+def map_pm25_to_class(pm25):
+    if pm25 <= 50.4: return 0
+    elif pm25 <= 100.4: return 1
+    elif pm25 <= 150.4: return 2
+    elif pm25 <= 200.4: return 3
+    elif pm25 <= 300.4: return 4
+    else: return 5
+
 """
 Batching Inputs
 """
+
 # Batch train inputs/outputs
 # Batch validation inputs/outputs
 # batch test inputs/outputs
-train_loader = DataLoader(data["train"], batch_size=100, shuffle=True, collate_fn=collate_fn_train, num_workers=16) # creates batches (might want to change batch back to 32 for train loop)
+train_loader = DataLoader(data["train"], batch_size=32, shuffle=True, collate_fn=collate_fn_train, num_workers=16) # creates batches (might want to change batch back to 32 for train loop)
 test_loader = DataLoader(data["test"], batch_size=32, shuffle=True, collate_fn=collate_fn_test, num_workers=16)
 val_loader = DataLoader(data["val"], batch_size=32, shuffle=True, collate_fn=collate_fn_test, num_workers=16)
 
@@ -126,14 +136,6 @@ for test_in, test_out in test_loader:
 """
 Display 100 Visualizations
 """
-# classificiation ? can be put at the end for later
-def map_pm25_to_class(pm25):
-    if pm25 <= 50.4: return 0
-    elif pm25 <= 100.4: return 1
-    elif pm25 <= 150.4: return 2
-    elif pm25 <= 200.4: return 3
-    elif pm25 <= 300.4: return 4
-    else: return 5
 
 # create batches of images
 # pics = batch of images
@@ -168,13 +170,24 @@ class myNN(nn.Module):
         super().__init__() # this calls a pytorch function to do math so no need to indent
         
         self.layer1 = nn.Conv2d(3, 40,  kernel_size= 3, stride=1 , padding=1) # inputs to layer 1
-        self.batchNorm1 = nn.BatchNorm2d( 40 )
+        self.batchNorm1 = nn.BatchNorm2d( 40 )        
+        self.layer1b= nn.Conv2d(40, 40, 3, 1, 1)
+        self.batchNorm1b = nn.BatchNorm2d( 40 )
+
         self.layer2 = nn.Conv2d(40, 80,  kernel_size= 3, stride=1 , padding=1) # inputs to layer 2
         self.batchNorm2 = nn.BatchNorm2d( 80 )
+        self.layer2b= nn.Conv2d(80, 80, 3, 1, 1)
+        self.batchNorm2b = nn.BatchNorm2d( 80 )
+
         self.layer3 = nn.Conv2d(80, 50,  kernel_size= 3, stride=1 , padding=1) # inputs to layer 2
         self.batchNorm3 = nn.BatchNorm2d( 50 )
+        self.layer3b= nn.Conv2d(50, 50, 3, 1, 1)
+        self.batchNorm3b = nn.BatchNorm2d( 50 )
+
         self.layer4 = nn.Conv2d(50, 100,  3, 1 , 1) #The output can be modified for loss testing
         self.batchNorm4 = nn.BatchNorm2d( 100 )
+        self.layer4b= nn.Conv2d(100, 100, 3, 1, 1)
+        self.batchNorm4b = nn.BatchNorm2d( 100 )
 
         self.pool = nn.MaxPool2d(kernel_size=2, stride= 2)
         self.fc1 = nn.Linear(14 * 14 * 100, 400)
@@ -184,12 +197,19 @@ class myNN(nn.Module):
     def forward(self, inputs):
 
         partial = self.relu(self.batchNorm1(self.layer1(inputs)))
+        partial = self.relu(self.batchNorm1b(self.layer1b(partial)))
         partial = self.pool(partial)
+
         partial = self.relu(self.batchNorm2(self.layer2(partial)))
+        partial = self.relu(self.batchNorm2b(self.layer2b(partial)))
         partial = self.pool(partial)
+
         partial = self.relu(self.batchNorm3(self.layer3(partial)))
+        partial = self.relu(self.batchNorm3b(self.layer3b(partial)))
         partial = self.pool(partial)
+
         partial = self.relu(self.batchNorm4(self.layer4(partial)))
+        partial = self.relu(self.batchNorm4b(self.layer4b(partial)))
         partial = self.pool(partial)
 
         partial = partial.flatten(start_dim=1)
@@ -232,7 +252,7 @@ Optimizer + Loss Function
 """
 # optimizer = Adam with learning rate 0.01
 # Loss Function = MSE
-loss_function = nn.SmoothL1Loss(beta= 25.0)
+loss_function = nn.SmoothL1Loss(beta=0.25)
 rmse_function = nn.MSELoss() #So I can keep rmse for accuracy
 
 optimizer = torch.optim.Adam(model.parameters(), lr=0.001, weight_decay=.0001) # define optimizer + added a weight decay
@@ -256,9 +276,9 @@ run = wandb.init(
   )
 
 #Training Loop
-best_val_RMSE, best_epoch, best_model_state = float("inf"), 0, None
+best_val_acc, best_epoch, best_model_state = 0.0, 0, None
 
-epoch = 35  #TEMPORARY FOR NOW WHILE WE wait for RUNPOD - runpod works
+epoch = 30  #TEMPORARY FOR NOW WHILE WE wait for RUNPOD - runpod works
 #counter to know how many batches = len(dataloader)
 for i in range(epoch):
     model.train() # sets the model into training mode, allows weights to be changed
@@ -270,8 +290,8 @@ for i in range(epoch):
         train_out = train_out.to(device)
         if True:
         #if counter < 25:
-            optimizer.zero_grad() # removes all calculation donsmoo
-            train_preds = model(train_in) # runs the class whichn gets updated each loop
+            optimizer.zero_grad() # removes all calculation don
+            train_preds = model(train_in) # runs the class whichn gets updated each loop           
             loss = loss_function(train_preds, train_out.unsqueeze(1)) # loss would be a tensor
             #print(f"Epoch {epoch} | training loss: {loss.item()}")
             loss.backward() # calculates the slopes 
@@ -279,7 +299,7 @@ for i in range(epoch):
             
             # add loss to list per batch
             #print(f"Train LOSS: {loss.item()}")
-            training_loss.append(rmse_function(train_preds,train_out.unsqueeze(1)).item())
+            training_loss.append(rmse_function(train_preds * 100,train_out.unsqueeze(1)* 100).item())
             counter += 1
 
     #scheduler.step()
@@ -290,7 +310,8 @@ for i in range(epoch):
         
     ### Gets input and outputs in batches using validation DataLoader
             # DO NOT TRAIN
-    val_loss = []
+    val_loss,val_preds_all, val_out_all = [], [], []
+
     model.eval() # evaluation mode, even if i try to update weights, dont do it
     with torch.no_grad(): # tells pytorch to not calculate gradients, will run faster
         counter = 0
@@ -300,17 +321,31 @@ for i in range(epoch):
             if True:
             #if counter < 25:
                 val_preds = model(val_in)
+                val_preds_all.extend((val_preds.squeeze(1) * 100).detach().cpu().tolist())
+                val_out_all.extend((val_out * 100).detach().cpu().tolist())
                 loss = loss_function(val_preds, val_out.unsqueeze(1))
                 #print(f"Epoch {epoch} | validation loss: {loss.item()}")
                 # add loss to list per batch
-                val_loss.append(rmse_function(val_preds, val_out.unsqueeze(1)).item())
+                val_loss.append(rmse_function(val_preds * 100, val_out.unsqueeze(1) * 100).item())
                 counter += 1
     # calculate RMSE for training (per epoch)
     
     val_RMSE = ((sum(val_loss))/(len(val_loss))) ** 0.5
-    if val_RMSE < best_val_RMSE:
-      best_val_RMSE, best_epoch = val_RMSE, i + 1
+    val_pred_classes = [map_pm25_to_class(x) for x in val_preds_all]
+    val_true_classes = [map_pm25_to_class(x) for x in val_out_all]
+    val_cm = confusion_matrix(val_true_classes, val_pred_classes)
+    
+    val_acc = val_cm.diagonal().sum() / val_cm.sum()
+    print(f"Epoch {i+1} | Validation AQI accuracy: {val_acc:.4f}")
+    if val_acc > best_val_acc:
+      best_val_acc, best_epoch = val_acc, i + 1
       best_model_state = {k: v.cpu().clone() for k, v in model.state_dict().items()}
+
+
+#    if val_RMSE < best_val_RMSE:
+#      best_val_RMSE, best_epoch = val_RMSE, i + 1
+#      best_model_state = {k: v.cpu().clone() for k, v in model.state_dict().items()}
+
     print(f"Epoch {i+1} | Validation loss: {val_RMSE}")
     scheduler.step(val_RMSE)
     print(f"Epoch {i+1} | Learning rate: {optimizer.param_groups[0] ['lr']}")
@@ -318,7 +353,7 @@ for i in range(epoch):
 ####################
 model.load_state_dict(best_model_state)
 model = model.to(device)
-print(f"Testing best model from epoch {best_epoch} with val RMSE {best_val_RMSE}")
+print(f"Testing best model from epoch {best_epoch} with val AQI accuracy {best_val_acc:.4f}")
 ########################
 
 """""
@@ -341,9 +376,9 @@ with torch.no_grad(): # stops background running pytorch because we don't need i
             loss = loss_function(test_preds, test_out.unsqueeze(1)) # ask eric, 'NoneType' object has no attribute 'size'
             #print(f"Epoch {epoch} | test loss: {loss.item()}")
             # add loss to list per batch
-            test_loss.append(rmse_function(test_preds,test_out.unsqueeze(1)).item())
-            AQI_values_in.extend(test_preds.tolist())
-            AQI_values_out.extend(test_out.tolist())
+            test_loss.append(rmse_function(test_preds * 100,test_out.unsqueeze(1)* 100).item())
+            AQI_values_in.extend((test_preds.squeeze(1) * 100).detach().cpu().tolist())
+            AQI_values_out.extend((test_out * 100).detach().cpu().tolist())
             counter += 1
     # calculate RMSE for training (per epoch)
     test_RMSE = ((sum(test_loss))/(len(test_loss))) ** 0.5
@@ -351,7 +386,7 @@ with torch.no_grad(): # stops background running pytorch because we don't need i
     # passing in AQI values into classification function for class level
     AQI_class_level = [] # predictions
     for pm25 in AQI_values_in:
-        AQI_class_level.append(map_pm25_to_class(pm25[0]))
+        AQI_class_level.append(map_pm25_to_class(pm25))
 
     AQI_class_out = [] # actual
     for pm25 in AQI_values_out:
