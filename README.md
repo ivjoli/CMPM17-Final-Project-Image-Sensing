@@ -6,4 +6,7 @@ Making my first changes to ReadME!!!!!
 GOAL: Create a model that can identify PM2.5 concentration and identifying it into concentration class range between levels 0 (cleanest) to 5 (dangerous)
 
 Google Doc: https://docs.google.com/document/d/1YdWMA8aw5PYPxhvwSW4bXexrKSHUfbC3TNa8ufBqk40/edit?usp=sharing 
+
 Planner: https://docs.google.com/spreadsheets/d/1YoslEnfOA7FUx9yqO3Oj8H2rY9-MBTh1sgg7ZMb5Sf4/edit?usp=sharing 
+
+For running the model, only run runpoddable.py (training with epoch) and tester.py (testing the files) with image "demo_pic.jpg". The others are just draft of the final code.

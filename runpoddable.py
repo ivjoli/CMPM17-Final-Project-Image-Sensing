@@ -278,7 +278,7 @@ run = wandb.init(
 #Training Loop
 best_val_acc, best_epoch, best_model_state = 0.0, 0, None
 
-epoch = 1  #TEMPORARY FOR NOW WHILE WE wait for RUNPOD - runpod works
+epoch = 35  #TEMPORARY FOR NOW WHILE WE wait for RUNPOD - runpod works
 #counter to know how many batches = len(dataloader)
 for i in range(epoch):
     model.train() # sets the model into training mode, allows weights to be changed
