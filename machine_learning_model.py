@@ -29,10 +29,10 @@ load data x
 """
 # ===== Load dataset =====
 # WandB
-run = wandb.init(project="example-test", name="my-run")
+#run = wandb.init(project="example-test", name="my-run")
 
 
-data = load_dataset("DeadCardassian/PM25Vision") # loads the data from the website
+
 #print(data) shows the data
 #exit()
 
@@ -239,6 +239,19 @@ optimizer = torch.optim.Adam(model.parameters(), lr=0.001, weight_decay= .01) # 
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 model = model.to(device)
+
+run = wandb.init(project="example-test", 
+                 name="my-run",
+                 config={
+                     "epochs": 10,
+                     "batch_size": 32
+                     "learning_rate": 1e-3,
+                     "image_size":224,
+                     "model": "CNN"
+                }
+)
+
+data = load_dataset("DeadCardassian/PM25Vision") # loads the data from the website
 
 """Training Loop"""
 

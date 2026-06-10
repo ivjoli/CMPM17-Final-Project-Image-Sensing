@@ -112,9 +112,9 @@ Batching Inputs
 # Batch train inputs/outputs
 # Batch validation inputs/outputs
 # batch test inputs/outputs
-train_loader = DataLoader(data["train"], batch_size=32, shuffle=True, collate_fn=collate_fn_train, num_workers=16) # creates batches (might want to change batch back to 32 for train loop)
-test_loader = DataLoader(data["test"], batch_size=32, shuffle=True, collate_fn=collate_fn_test, num_workers=16)
-val_loader = DataLoader(data["val"], batch_size=32, shuffle=True, collate_fn=collate_fn_test, num_workers=16)
+train_loader = DataLoader(data["train"], batch_size=100, shuffle=True, collate_fn=collate_fn_train) # creates batches (might want to change batch back to 32 for train loop)
+test_loader = DataLoader(data["test"], batch_size=32, shuffle=True, collate_fn=collate_fn_test)
+val_loader = DataLoader(data["val"], batch_size=32, shuffle=True, collate_fn=collate_fn_test)
 
 # view the data in train_loader, match input pictures with output PM2.5 concentration
 for train_in, train_out in train_loader:
@@ -278,7 +278,7 @@ run = wandb.init(
 #Training Loop
 best_val_acc, best_epoch, best_model_state = 0.0, 0, None
 
-epoch = 30  #TEMPORARY FOR NOW WHILE WE wait for RUNPOD - runpod works
+epoch = 1  #TEMPORARY FOR NOW WHILE WE wait for RUNPOD - runpod works
 #counter to know how many batches = len(dataloader)
 for i in range(epoch):
     model.train() # sets the model into training mode, allows weights to be changed
